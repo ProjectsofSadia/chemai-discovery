@@ -9,6 +9,7 @@ Single file - Ready to run!
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
+import os
 import uvicorn
 import numpy as np
 import time
@@ -1952,11 +1953,11 @@ def main():
     # Run application
     try:
         uvicorn.run(
-            app,
-            host="0.0.0.0",
-            port=8000,
-            log_level="info"
-        )
+    app,
+    host="0.0.0.0",
+    port=int(os.environ.get("PORT", 8000)),
+    log_level="info"
+)
     except KeyboardInterrupt:
         print("\n" + "="*80)
         print("🛑 ChemAI Discovery Platform Stopped")
