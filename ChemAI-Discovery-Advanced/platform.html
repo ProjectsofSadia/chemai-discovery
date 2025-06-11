@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChemAI Discovery - Advanced Drug Discovery Platform</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .platform-header {
+            padding: 2rem;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+        }
+        
+        .platform-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+        
+        .analysis-panel, .generation-panel {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+        
+        input, textarea, select {
+            width: 100%;
+            padding: 1rem;
+            border: none;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 1rem;
+        }
+        
+        input::placeholder, textarea::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 50px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            font-size: 1.1rem;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(79, 172, 254, 0.3);
+        }
+        
+        .results-panel {
+            grid-column: 1 / -1;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin-top: 2rem;
+        }
+        
+        .visualization {
+            width: 100%;
+            height: 400px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            margin-top: 1rem;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #4facfe;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @media (max-width: 768px) {
+            .platform-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="platform-header">
+        <h1>🧬 ChemAI Discovery Platform</h1>
+        <p>Advanced Molecular Analysis & Generation</p>
+    </div>
+    
+    <div class="platform-content">
+        <div class="analysis-panel">
+            <h2>🔬 Molecular Analysis</h2>
+            <div class="input-group">
+                <label for="smiles">SMILES String</label>
+                <input type="text" id="smiles" placeholder="CCO (ethanol)" value="CCO">
+            </div>
+            <button class="btn" onclick="analyzeMolecule()">Analyze Molecule</button>
+        </div>
+        
+        <div class="generation-panel">
+            <h2>🧪 Molecular Generation</h2>
+            <div class="input-group">
+                <label for="solubility-target">Target Solubility (LogS)</label>
+                <input type="number" id="solubility-target" placeholder="-2.0" value="-2.0" step="0.1">
+            </div>
+            <div class="input-group">
+                <label for="bioavailability-target">Target Bioavailability (%)</label>
+                <input type="number" id="bioavailability-target" placeholder="70" value="70" min="0" max="100">
+            </div>
+            <div class="input-group">
+                <label for="molecule-count">Number of Molecules</label>
+                <select id="molecule-count">
+                    <option value="5">5 molecules</option>
+                    <option value="10" selected>10 molecules</option>
+                    <option value="20">20 molecules</option>
+                </select>
+            </div>
+            <button class="btn" onclick="generateMolecules()">Generate Molecules</button>
+        </div>
+    </div>
+    
+    <div class="results-panel">
+        <h2>📊 Results</h2>
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Processing with advanced AI models...</p>
+        </div>
+        <div id="results-content">
+            <p>Enter a SMILES string or generate molecules to see advanced AI predictions.</p>
+        </div>
+        <div class="visualization" id="visualization"></div>
+    </div>
+    
+    <script>
+        async function analyzeMolecule() {
+            const smiles = document.getElementById('smiles').value;
+            if (!smiles) {
+                alert('Please enter a SMILES string');
+                return;
+            }
+            
+            showLoading();
+            
+            try {
+                const response = await fetch('/api/v2/analyze-molecule', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ smiles: smiles })
+                });
+                
+                const result = await response.json();
+                displayAnalysisResults(result);
+                
+            } catch (error) {
+                console.error('Analysis error:', error);
+                document.getElementById('results-content').innerHTML = 
+                    '<p style="color: #f5576c;">❌ Analysis failed. Please check your SMILES string.</p>';
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        async function generateMolecules() {
+            const solubility = parseFloat(document.getElementById('solubility-target').value);
+            const bioavailability = parseFloat(document.getElementById('bioavailability-target').value);
+            const count = parseInt(document.getElementById('molecule-count').value);
+            
+            showLoading();
+            
+            try {
+                const response = await fetch('/api/v2/generate-molecules', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        target_properties: {
+                            solubility: solubility,
+                            bioavailability: bioavailability
+                        },
+                        count: count
+                    })
+                });
+                
+                const result = await response.json();
+                displayGenerationResults(result);
+                
+            } catch (error) {
+                console.error('Generation error:', error);
+                document.getElementById('results-content').innerHTML = 
+                    '<p style="color: #f5576c;">❌ Generation failed. Please try again.</p>';
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        function displayAnalysisResults(result) {
+            const predictions = result.predictions;
+            
+            let html = `
+                <h3>🧬 Analysis Results for ${result.smiles}</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin: 1rem 0;">
+            `;
+            
+            for (const [property, data] of Object.entries(predictions)) {
+                const confidence = (data.confidence * 100).toFixed(1);
+                const value = typeof data.value === 'number' ? data.value.toFixed(2) : data.value;
+                
+                html += `
+                    <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 12px;">
+                        <h4>${property.replace('_', ' ').toUpperCase()}</h4>
+                        <p style="font-size: 1.5rem; font-weight: bold; color: #4facfe;">${value}</p>
+                        <p style="font-size: 0.9rem; opacity: 0.8;">Confidence: ${confidence}%</p>
+                        <p style="font-size: 0.9rem; opacity: 0.7;">${data.interpretation}</p>
+                    </div>
+                `;
+            }
+            
+            html += `</div>
+                <p style="margin-top: 1rem; opacity: 0.8;">
+                    Overall Confidence: ${(result.overall_confidence * 100).toFixed(1)}% | 
+                    Processing Time: ${(result.processing_time * 1000).toFixed(0)}ms
+                </p>
+            `;
+            
+            document.getElementById('results-content').innerHTML = html;
+            
+            // Create visualization
+            createAnalysisVisualization(predictions);
+        }
+        
+        function displayGenerationResults(result) {
+            const molecules = result.molecules;
+            
+            let html = `
+                <h3>🧪 Generated ${molecules.length} Molecules</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; margin: 1rem 0;">
+            `;
+            
+            molecules.slice(0, 6).forEach((mol, index) => {
+                const confidence = (mol.confidence * 100).toFixed(1);
+                const novelty = (mol.novelty_score * 100).toFixed(1);
+                
+                html += `
+                    <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 12px;">
+                        <h4>${mol.name}</h4>
+                        <p style="font-family: monospace; font-size: 0.9rem; opacity: 0.8;">${mol.smiles}</p>
+                        <div style="margin: 0.5rem 0;">
+                            <small>Confidence: ${confidence}% | Novelty: ${novelty}%</small>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += `</div>
+                <p style="margin-top: 1rem; opacity: 0.8;">
+                    Average Novelty: ${(result.statistics.average_novelty * 100).toFixed(1)}% | 
+                    Generation Time: ${result.statistics.generation_time.toFixed(2)}s
+                </p>
+            `;
+            
+            document.getElementById('results-content').innerHTML = html;
+            
+            // Create visualization
+            createGenerationVisualization(molecules);
+        }
+        
+        function createAnalysisVisualization(predictions) {
+            const properties = Object.keys(predictions);
+            const values = properties.map(prop => predictions[prop].value);
+            const confidences = properties.map(prop => predictions[prop].confidence * 100);
+            
+            const trace1 = {
+                x: properties.map(p => p.replace('_', ' ')),
+                y: values,
+                type: 'bar',
+                name: 'Property Values',
+                marker: { color: '#4facfe' }
+            };
+            
+            const trace2 = {
+                x: properties.map(p => p.replace('_', ' ')),
+                y: confidences,
+                type: 'scatter',
+                mode: 'lines+markers',
+                name: 'Confidence %',
+                yaxis: 'y2',
+                line: { color: '#f5576c' }
+            };
+            
+            const layout = {
+                title: 'Molecular Property Analysis',
+                paper_bgcolor: 'transparent',
+                plot_bgcolor: 'transparent',
+                font: { color: 'white' },
+                yaxis: { title: 'Property Value' },
+                yaxis2: { title: 'Confidence %', overlaying: 'y', side: 'right' }
+            };
+            
+            Plotly.newPlot('visualization', [trace1, trace2], layout);
+        }
+        
+        function createGenerationVisualization(molecules) {
+            const noveltyScores = molecules.map(mol => mol.novelty_score * 100);
+            const validityScores = molecules.map(mol => mol.validity_score * 100);
+            const names = molecules.map(mol => mol.name);
+            
+            const trace = {
+                x: noveltyScores,
+                y: validityScores,
+                mode: 'markers',
+                type: 'scatter',
+                text: names,
+                marker: {
+                    size: 12,
+                    color: molecules.map(mol => mol.confidence * 100),
+                    colorscale: 'Viridis',
+                    showscale: true,
+                    colorbar: { title: 'Confidence %' }
+                }
+            };
+            
+            const layout = {
+                title: 'Generated Molecules - Novelty vs Validity',
+                xaxis: { title: 'Novelty Score (%)' },
+                yaxis: { title: 'Validity Score (%)' },
+                paper_bgcolor: 'transparent',
+                plot_bgcolor: 'transparent',
+                font: { color: 'white' }
+            };
+            
+            Plotly.newPlot('visualization', [trace], layout);
+        }
+        
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results-content').style.display = 'none';
+        }
+        
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('results-content').style.display = 'block';
+        }
+        
+        // Initialize with demo analysis
+        setTimeout(() => {
+            analyzeMolecule();
+        }, 1000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+{
+  "name": "chemai-discovery-advanced",
+  "version": "2.0.0",
+  "description": "Revolutionary AI-powered drug discovery platform",
+  "main": "src/main.py",
+  "scripts": {
+    "start": "python src/main.py",
+    "test": "pytest tests/ -v",
+    "format": "black src/ tests/",
+    "lint": "flake8 src/ tests/"
+  },
+  "keywords": [
+    "drug-discovery",
+    "artificial-intelligence",
+    "molecular-analysis",
+    "pharmaceutical",
+    "chemistry",
+    "machine-learning",
+    "fastapi",
+    "python"
+  ],
+  "author": "ChemAI Discovery Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/ChemAI-Discovery-Advanced.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-org/ChemAI-Discovery-Advanced/issues"
+  },
+  "homepage": "https://github.com/your-org/ChemAI-Discovery-Advanced#readme",
+  "engines": {
+    "python": ">=3.8"
+  }
+}

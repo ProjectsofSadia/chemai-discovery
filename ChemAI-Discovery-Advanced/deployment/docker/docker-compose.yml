@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  chemai-discovery:
+    build:
+      context: ../..
+      dockerfile: deployment/docker/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - GPU_ENABLED=false
+      - MAX_WORKERS=4
+      - LOG_LEVEL=info
+    volumes:
+      - ../../data:/app/data
+      - ../../logs:/app/logs
+      - ../../models:/app/models
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+
+  chemai-discovery-gpu:
+    build:
+      context: ../..
+      dockerfile: deployment/docker/Dockerfile
+    ports:
+      - "8001:8000"
+    environment:
+      - GPU_ENABLED=true
+      - CUDA_DEVICE=0
+      - MAX_WORKERS=2
+    volumes:
+      - ../../data:/app/data
+      - ../../logs:/app/logs
+      - ../../models:/app/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    profiles:
+      - gpu
+    restart: unless-stopped
+
+networks:
+  default:
+    name: chemai-network
